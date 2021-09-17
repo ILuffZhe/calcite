@@ -557,7 +557,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testGroupingSetsRepeated() {
     final String sql = "select deptno, group_id()\n"
         + "from emp\n"
-        + "group by grouping sets (deptno, (), deptno)";
+        + "group by grouping sets (deptno, (), job, (deptno, job), deptno,\n"
+        + "  job, deptno)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testGroupingSetsRepeated()} but with no {@code GROUP_ID}
+   * function. (We still need the plan to contain a Union.) */
+  @Test void testGroupingSetsRepeatedNoGroupId() {
+    final String sql = "select deptno, job\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), job, (deptno, job), deptno,\n"
+        + "  job, deptno)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testGroupingSetsRepeated()} but grouping sets are distinct.
+   * The {@code GROUP_ID} is replaced by 0.*/
+  @Test void testGroupingSetsWithGroupId() {
+    final String sql = "select deptno, group_id()\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), job)";
     sql(sql).ok();
   }
 
@@ -4297,10 +4317,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
-
   @Test public void testInWithConstantList() {
     String expr = "1 in (1,2,3)";
     expr(expr).ok();
+  }
+
+  @Test public void testFunctionExprInOver() {
+    String sql = "select ename, row_number() over(partition by char_length(ename)\n"
+        + " order by deptno desc) as rn\n"
+        + "from emp\n"
+        + "where deptno = 10";
+    Tester newTester = tester.withValidatorTransform(
+        sqlValidator -> sqlValidator.transform(
+            config -> config.withIdentifierExpansion(false)));
+    newTester.assertConvertsTo(sql, "${plan}", false);
   }
 
   /**

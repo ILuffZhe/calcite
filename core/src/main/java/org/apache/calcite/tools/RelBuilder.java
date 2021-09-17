@@ -731,6 +731,11 @@ public class RelBuilder {
     return call(SqlStdOperatorTable.EQUALS, operand0, operand1);
   }
 
+  /** Creates a {@code >}. */
+  public RexNode greaterThan(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.GREATER_THAN, operand0, operand1);
+  }
+
   /** Creates a {@code <>}. */
   public RexNode notEquals(RexNode operand0, RexNode operand1) {
     return call(SqlStdOperatorTable.NOT_EQUALS, operand0, operand1);
@@ -1934,8 +1939,9 @@ public class RelBuilder {
       final ImmutableSortedMultiset<ImmutableBitSet> groupSetMultiset =
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
-      if (Iterables.any(aggCalls, RelBuilder::isGroupId)) {
-        return rewriteAggregateWithGroupId(groupSet, groupSetMultiset,
+      if (Iterables.any(aggCalls, RelBuilder::isGroupId)
+          || !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)) {
+        return rewriteAggregateWithDuplicateGroupSets(groupSet, groupSetMultiset,
             ImmutableList.copyOf(aggCalls));
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
@@ -2093,14 +2099,26 @@ public class RelBuilder {
    * flatten, sorting, redundancy removal), this information is lost in RelNode.
    * Therefore, it is impossible to implement the function in runtime.
    *
-   * <p>To fill this gap, an aggregation query that contains {@code GROUP_ID()}
-   * function will generally be rewritten into UNION when converting to RelNode.
+   * <p>To fill this gap, an aggregation query that contains duplicate group
+   * sets is rewritten into a Union of Aggregate operators whose group sets are
+   * distinct. The number of inputs to the Union is equal to the maximum number
+   * of duplicates. In the {@code N}th input to the Union, calls to the
+   * {@code GROUP_ID} aggregate function are replaced by the integer literal
+   * {@code N}.
+   *
+   * <p>This method also handles the case where group sets are distinct but
+   * there is a call to {@code GROUP_ID}. That call is replaced by the integer
+   * literal {@code 0}.
    *
    * <p>Also see the discussion in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
-   * GROUP_ID returns wrong result</a>.
+   * GROUP_ID returns wrong result</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
+   * If there are duplicate GROUPING SETS, Calcite should return duplicate
+   * rows</a>.
    */
-  private RelBuilder rewriteAggregateWithGroupId(ImmutableBitSet groupSet,
+  private RelBuilder rewriteAggregateWithDuplicateGroupSets(
+      ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCall> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
@@ -3530,13 +3548,12 @@ public class RelBuilder {
       if (distinct) {
         b.append("DISTINCT ");
       }
-      final int iMax = operands.size() - 1;
-      for (int i = 0; ; i++) {
-        b.append(operands.get(i));
-        if (i == iMax) {
-          break;
+      if (operands.size() > 0) {
+        b.append(operands.get(0));
+        for (int i = 1; i < operands.size(); i++) {
+          b.append(", ");
+          b.append(operands.get(i));
         }
-        b.append(", ");
       }
       b.append(')');
       if (filter != null) {
