@@ -67,6 +67,7 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -473,8 +474,7 @@ public class RelBuilderTest {
                 builder.getRexBuilder().makeTimestampLiteral(
                     new TimestampString("2011-07-20 12:34:56"), 0))
             .join(JoinRelType.INNER,
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, 0, "PRODUCT"),
+                builder.equals(builder.field(2, 0, "PRODUCT"),
                     builder.field(2, 1, "ID")))
             .build();
     final String expected = "LogicalJoin(condition=[=($2, $4)], joinType=[inner])\n"
@@ -517,9 +517,8 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.OR,
-                    builder.call(SqlStdOperatorTable.EQUALS,
-                        builder.field("DEPTNO"),
+                builder.or(
+                    builder.equals(builder.field("DEPTNO"),
                         builder.literal(20)),
                     builder.isNull(builder.field(6))),
                 builder.isNotNull(builder.field(3)))
@@ -543,12 +542,10 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.OR,
-                    builder.call(SqlStdOperatorTable.GREATER_THAN,
-                        builder.field("DEPTNO"),
+                builder.or(
+                    builder.greaterThan(builder.field("DEPTNO"),
                         builder.literal(20)),
-                    builder.call(SqlStdOperatorTable.GREATER_THAN,
-                        builder.field("DEPTNO"),
+                    builder.greaterThan(builder.field("DEPTNO"),
                         builder.literal(20))))
             .build();
     final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
@@ -567,8 +564,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPTNO"),
+                builder.greaterThan(builder.field("DEPTNO"),
                     builder.literal(20)),
                 builder.literal(false))
             .build();
@@ -585,8 +581,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPTNO"),
+                builder.greaterThan(builder.field("DEPTNO"),
                     builder.literal(20)),
                 builder.literal(true))
             .build();
@@ -606,12 +601,10 @@ public class RelBuilderTest {
     //   WHERE deptno > 20 AND deptno > 20 AND deptno > 20
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
-    final RexNode condition = builder.call(SqlStdOperatorTable.GREATER_THAN,
-        builder.field("DEPTNO"),
-        builder.literal(20));
-    final RexNode condition2 = builder.call(SqlStdOperatorTable.LESS_THAN,
-        builder.field("DEPTNO"),
-        builder.literal(30));
+    final RexNode condition =
+        builder.greaterThan(builder.field("DEPTNO"), builder.literal(20));
+    final RexNode condition2 =
+        builder.lessThan(builder.field("DEPTNO"), builder.literal(30));
     final RelNode root = builder.filter(condition, condition, condition)
         .build();
     final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
@@ -824,8 +817,7 @@ public class RelBuilderTest {
                 builder.alias(builder.field(1), "b"),
                 builder.alias(builder.field(2), "c"))
             .filter(
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field("a"),
+                builder.equals(builder.field("a"),
                     builder.literal(20)))
             .aggregate(builder.groupKey(0, 1, 2),
                 builder.aggregateCall(SqlStdOperatorTable.SUM,
@@ -1299,14 +1291,11 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
-            .aggregate(
-                builder.groupKey(builder.field(1)),
+            .aggregate(builder.groupKey(builder.field(1)),
                 builder.count().as("C"))
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(1),
-                    builder.literal(3)))
-            .aggregate(
-                builder.groupKey(builder.field(0)))
+                builder.greaterThan(builder.field(1), builder.literal(3)))
+            .aggregate(builder.groupKey(builder.field(0)))
             .build();
     final String expected = ""
         + "LogicalProject(ENAME=[$0])\n"
@@ -1453,8 +1442,8 @@ public class RelBuilderTest {
                             ImmutableBitSet.of())),
                 builder.count()
                     .filter(
-                        builder.call(SqlStdOperatorTable.GREATER_THAN,
-                            builder.field("EMPNO"), builder.literal(100)))
+                        builder.greaterThan(builder.field("EMPNO"),
+                            builder.literal(100)))
                     .as("C"))
             .build();
     final String expected = ""
@@ -1506,8 +1495,8 @@ public class RelBuilderTest {
                 builder.groupKey(builder.field("DEPTNO")),
                 builder.sum(builder.field("SAL"))
                     .filter(
-                        builder.call(SqlStdOperatorTable.LESS_THAN,
-                            builder.field("COMM"), builder.literal(100)))
+                        builder.lessThan(builder.field("COMM"),
+                            builder.literal(100)))
                     .as("C"))
             .build();
     final String expected = ""
@@ -1600,8 +1589,8 @@ public class RelBuilderTest {
                 builder.groupKey(builder.field("DEPTNO")),
                     builder.sum(builder.field("SAL"))
                 .filter(
-                    builder.call(SqlStdOperatorTable.EQUALS,
-                        builder.field("JOB"), builder.literal("CLERK"))))
+                    builder.equals(builder.field("JOB"),
+                        builder.literal("CLERK"))))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{0}], agg#0=[SUM($1) FILTER $2])\n"
@@ -1965,8 +1954,7 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field("DEPTNO"),
+                builder.equals(builder.field("DEPTNO"),
                     builder.literal(20)))
             .project(builder.field("EMPNO"))
             .union(true)
@@ -2142,8 +2130,7 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field("DEPTNO"),
+                builder.equals(builder.field("DEPTNO"),
                     builder.literal(20)))
             .project(builder.field("EMPNO"))
             .intersect(false)
@@ -2198,8 +2185,7 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .scan("EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field("DEPTNO"),
+                builder.equals(builder.field("DEPTNO"),
                     builder.literal(20)))
             .project(builder.field("EMPNO"))
             .minus(false)
@@ -2227,8 +2213,7 @@ public class RelBuilderTest {
                     builder.field("COMM")))
             .scan("DEPT")
             .join(JoinRelType.INNER,
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, 0, "DEPTNO"),
+                builder.equals(builder.field(2, 0, "DEPTNO"),
                     builder.field(2, 1, "DEPTNO")))
             .build();
     final String expected = ""
@@ -2270,14 +2255,11 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .scan("DEPT")
             .join(JoinRelType.LEFT,
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, 0, "DEPTNO"),
+                builder.equals(builder.field(2, 0, "DEPTNO"),
                     builder.field(2, 1, "DEPTNO")),
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, 0, "EMPNO"),
+                builder.equals(builder.field(2, 0, "EMPNO"),
                     builder.literal(123)),
-                builder.call(SqlStdOperatorTable.IS_NOT_NULL,
-                    builder.field(2, 1, "DEPTNO")))
+                builder.isNotNull(builder.field(2, 1, "DEPTNO")))
             .build();
     // Note that "dept.deptno IS NOT NULL" has been simplified away.
     final String expected = ""
@@ -2449,6 +2431,246 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testInQuery() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno IN (
+    //     SELECT deptno
+    //     FROM dept
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.in(b.field("DEPTNO"),
+                    b2 ->
+                        b2.scan("DEPT")
+                            .filter(
+                                b2.equals(b2.field("DNAME"),
+                                    b2.literal("Accounting")))
+                            .project(b2.field("DEPTNO"))
+                            .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[IN($7, {\n"
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testExists() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT null
+    //     FROM dept
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.exists(b2 ->
+                    b2.scan("DEPT")
+                        .filter(
+                            b2.equals(b2.field("DNAME"),
+                                b2.literal("Accounting")))
+                        .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testExistsCorrelated() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT null
+    //     FROM dept
+    //     WHERE deptno = emp.deptno)
+    final Function<RelBuilder, RelNode> f = b -> {
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      return b.scan("EMP")
+          .variable(v)
+          .filter(ImmutableList.of(v.get().id),
+              b.exists(b2 ->
+                  b2.scan("DEPT")
+                      .filter(
+                          b2.equals(b2.field("DEPTNO"),
+                              b2.field(v.get(), "DEPTNO")))
+                      .build()))
+          .build();
+    };
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testSomeAll() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > SOME (SELECT comm FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.some(b.field("SAL"),
+                    SqlStdOperatorTable.GREATER_THAN,
+                    b2 ->
+                        b2.scan("EMP")
+                            .project(b2.field("COMM"))
+                        .build()))
+            .build();
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE NOT (sal <= ALL (SELECT comm FROM emp))
+    final Function<RelBuilder, RelNode> f2 = b ->
+        b.scan("EMP")
+            .filter(
+                b.not(
+                    b.all(b.field("SAL"),
+                        SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                        b2 ->
+                            b2.scan("EMP")
+                                .project(b2.field("COMM"))
+                                .build())))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[> SOME($5, {\n"
+        + "LogicalProject(COMM=[$6])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testUnique() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM dept
+    //   WHERE UNIQUE (SELECT deptno FROM emp WHERE job = 'MANAGER')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .filter(
+                b.unique(b2 ->
+                    b2.scan("EMP")
+                        .filter(
+                            b2.equals(b2.field("JOB"),
+                                b2.literal("MANAGER")))
+                        .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[UNIQUE({\n"
+        + "LogicalFilter(condition=[=($2, 'MANAGER')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testScalarQuery() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > (
+    //     SELECT AVG(sal)
+    //     FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.greaterThan(b.field("SAL"),
+                    b.scalarQuery(b2 ->
+                        b2.scan("EMP")
+                            .aggregate(b2.groupKey(),
+                                b2.avg(b2.field("SAL")))
+                            .build())))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], agg#0=[AVG($5)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "}))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testArrayQuery() {
+    // Equivalent SQL:
+    //   SELECT deptno, ARRAY (SELECT * FROM Emp)
+    //   FROM Dept AS d
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .project(
+                b.field("DEPTNO"),
+                b.arrayQuery(b2 ->
+                        b2.scan("EMP")
+                            .build()))
+            .build();
+
+    final String expected = "LogicalProject(DEPTNO=[$0], $f1=[ARRAY({\n"
+        + "LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testMultisetQuery() {
+    // Equivalent SQL:
+    //   SELECT deptno, MULTISET (SELECT * FROM Emp)
+    //   FROM Dept AS d
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .project(
+                b.field("DEPTNO"),
+                b.multisetQuery(b2 ->
+                        b2.scan("EMP")
+                            .build()))
+            .build();
+
+    final String expected = "LogicalProject(DEPTNO=[$0], $f1=[MULTISET({\n"
+        + "LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testMapQuery() {
+    // Equivalent SQL:
+    //   SELECT deptno, MAP (SELECT empno, job FROM Emp)
+    //   FROM Dept AS d
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .project(
+                b.field("DEPTNO"),
+                b.mapQuery(b2 ->
+                        b2.scan("EMP")
+                            .project(b2.field("EMPNO"), b2.field("JOB"))
+                            .build()))
+            .build();
+
+    final String expected = "LogicalProject(DEPTNO=[$0], $f1=[MAP({\n"
+        + "LogicalProject(EMPNO=[$0], JOB=[$2])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testAlias() {
     // Equivalent SQL:
     //   SELECT *
@@ -2592,8 +2814,7 @@ public class RelBuilderTest {
                 builder.literal(10),
                 builder.field(0)) // DEPTNO
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field(1),
+                builder.greaterThan(builder.field(1),
                     builder.field("EMP_alias", "DEPTNO")))
             .build();
     final String expected = ""
@@ -2861,8 +3082,7 @@ public class RelBuilderTest {
                 builder.field("e", "MGR"))
             .as("all")
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("DEPT", "DEPTNO"),
+                builder.greaterThan(builder.field("DEPT", "DEPTNO"),
                     builder.literal(100)))
             .project(builder.field("DEPT", "DEPTNO"),
                 builder.field("all", "EMPNO"))
@@ -2924,11 +3144,9 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .scan("DEPT")
             .join(JoinRelType.LEFT,
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, "EMP", "DEPTNO"),
+                builder.equals(builder.field(2, "EMP", "DEPTNO"),
                     builder.field(2, "DEPT", "DEPTNO")),
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field(2, "EMP", "EMPNO"),
+                builder.equals(builder.field(2, "EMP", "EMPNO"),
                     builder.literal(123)))
             .build();
     final String expected = ""
@@ -3065,7 +3283,7 @@ public class RelBuilderTest {
         "LogicalValues(tuples=[[{ null, 1, 'abc' }, { false, null, 'longer string' }]])\n";
     assertThat(root, hasTree(expected));
     final String expectedType =
-        "RecordType(BOOLEAN a, INTEGER expr$1, CHAR(13) NOT NULL c) NOT NULL";
+        "RecordType(BOOLEAN a, INTEGER EXPR$1, CHAR(13) NOT NULL c) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
   }
 
@@ -3597,7 +3815,7 @@ public class RelBuilderTest {
             builder.literal(-1), builder.literal(false)));
 
     ImmutableMap.Builder<String, RexNode> pdBuilder = new ImmutableMap.Builder<>();
-    RexNode downDefinition = builder.call(SqlStdOperatorTable.LESS_THAN,
+    RexNode downDefinition = builder.lessThan(
         builder.call(SqlStdOperatorTable.PREV,
             builder.patternField("DOWN", intType, 3),
             builder.literal(0)),
@@ -3605,7 +3823,7 @@ public class RelBuilderTest {
             builder.patternField("DOWN", intType, 3),
             builder.literal(1)));
     pdBuilder.put("DOWN", downDefinition);
-    RexNode upDefinition = builder.call(SqlStdOperatorTable.GREATER_THAN,
+    RexNode upDefinition = builder.greaterThan(
         builder.call(SqlStdOperatorTable.PREV,
             builder.patternField("UP", intType, 3),
             builder.literal(0)),
@@ -3712,8 +3930,7 @@ public class RelBuilderTest {
         b.scan("EMP")
             .filter(
                 b.or(
-                    b.call(SqlStdOperatorTable.GREATER_THAN, b.field("DEPTNO"),
-                        b.literal(15)),
+                    b.greaterThan(b.field("DEPTNO"), b.literal(15)),
                     b.in(b.field("JOB"), b.literal("CLERK")),
                     b.in(b.field("DEPTNO"), b.literal(10), b.literal(20),
                         b.literal(11), b.literal(10))))
@@ -3738,13 +3955,11 @@ public class RelBuilderTest {
         .variable(v)
         .scan("DEPT")
         .filter(Collections.singletonList(v.get().id),
-            builder.call(SqlStdOperatorTable.OR,
-                builder.call(SqlStdOperatorTable.AND,
-                    builder.call(SqlStdOperatorTable.LESS_THAN,
-                        builder.field(v.get(), "DEPTNO"),
+            builder.or(
+                builder.and(
+                    builder.lessThan(builder.field(v.get(), "DEPTNO"),
                         builder.literal(30)),
-                    builder.call(SqlStdOperatorTable.GREATER_THAN,
-                        builder.field(v.get(), "DEPTNO"),
+                    builder.greaterThan(builder.field(v.get(), "DEPTNO"),
                         builder.literal(20))),
                 builder.isNull(builder.field(2))))
         .join(JoinRelType.LEFT,
@@ -3905,8 +4120,7 @@ public class RelBuilderTest {
     final RelNode root =
         builder.scan("JDBC_SCOTT", "EMP")
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(2),
-                    builder.literal(10)))
+                builder.greaterThan(builder.field(2), builder.literal(10)))
             .build();
     assertThat(root, matcher);
   }
@@ -4417,7 +4631,7 @@ public class RelBuilderTest {
    * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
   @Test void testExecuteNotLike() {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("?")
         .withRel(
             builder -> builder

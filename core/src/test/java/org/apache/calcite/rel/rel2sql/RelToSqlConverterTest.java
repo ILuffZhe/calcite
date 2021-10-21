@@ -518,11 +518,9 @@ class RelToSqlConverterTest {
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
-            b.call(SqlStdOperatorTable.OR,
-                b.call(SqlStdOperatorTable.GREATER_THAN, b.field("C"),
-                    b.literal(10)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("S"),
-                    b.literal(3000))))
+            b.or(
+                b.greaterThan(b.field("C"), b.literal(10)),
+                b.lessThan(b.field("S"), b.literal(3000))))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
         .project(b.field("JOB"))
         .build();
@@ -598,8 +596,9 @@ class RelToSqlConverterTest {
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
-            b.call(SqlStdOperatorTable.LESS_THAN,
-                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")), b.literal(1)))
+            b.lessThan(
+                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")),
+                b.literal(1)))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
         .project(b.field("JOB"))
         .build();
@@ -1202,12 +1201,10 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .filter(
             b.or(
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(10)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(12))),
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(6)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(8)))))
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(10)),
+                b.lessThan(b.field("EMPNO"), b.literal(12))),
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(6)),
+                b.lessThan(b.field("EMPNO"), b.literal(8)))))
         .build();
     final RuleSet rules = RuleSets.ofList(CoreRules.FILTER_TO_CALC);
     final String expected = "SELECT *\n"
@@ -1309,8 +1306,7 @@ class RelToSqlConverterTest {
         .scan("DEPT")
         .join(JoinRelType.LEFT,
             b.and(
-                b.call(SqlStdOperatorTable.EQUALS,
-                    b.field(2, 0, "DEPTNO"),
+                b.equals(b.field(2, 0, "DEPTNO"),
                     b.field(2, 1, "DEPTNO")),
                 b.call(SqlStdOperatorTable.LIKE,
                     b.field(2, 1, "DNAME"),
@@ -1400,8 +1396,7 @@ class RelToSqlConverterTest {
         .aggregate(builder.groupKey(builder.field("D")),
             builder.countStar("emps.count"))
         .filter(
-            builder.call(SqlStdOperatorTable.LESS_THAN,
-                builder.field("emps.count"), builder.literal(2)));
+            builder.lessThan(builder.field("emps.count"), builder.literal(2)));
 
     final LogicalFilter filter = (LogicalFilter) builder.build();
     assertThat(filter.getRowType().getFieldNames().toString(),
@@ -1927,28 +1922,28 @@ class RelToSqlConverterTest {
     final String query = "select *\n"
         + "from (\n"
         + "  select 1 as \"one\", 2 as \"tWo\", 3 as \"THREE\",\n"
-        + "    4 as \"fo$ur\", 5 as \"ignore\"\n"
+        + "    4 as \"fo$ur\", 5 as \"ignore\", 6 as \"si`x\"\n"
         + "  from \"foodmart\".\"days\") as \"my$table\"\n"
         + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
     final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si\\`x`\n"
         + "FROM foodmart.days) AS t\n"
         + "WHERE one < tWo AND THREE < `fo$ur`";
     final String expectedMysql =  "SELECT *\n"
         + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si``x`\n"
         + "FROM `foodmart`.`days`) AS `t`\n"
         + "WHERE `one` < `tWo` AND `THREE` < `fo$ur`";
     final String expectedPostgresql = "SELECT *\n"
         + "FROM (SELECT 1 AS \"one\", 2 AS \"tWo\", 3 AS \"THREE\","
-        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\", 6 AS \"si`x\"\n"
         + "FROM \"foodmart\".\"days\") AS \"t\"\n"
         + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
     final String expectedOracle = expectedPostgresql.replace(" AS ", " ");
     final String expectedExasol = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\", 6 AS \"si`x\"\n"
         + "FROM foodmart.days) AS t\n"
         + "WHERE one < tWo AND THREE < \"fo$ur\"";
     sql(query)
@@ -3471,12 +3466,27 @@ class RelToSqlConverterTest {
         + "join \"customer\" as c\n"
         + "  on s.\"customer_id\" = c.\"customer_id\"\n"
         + "group by s.\"customer_id\"";
-    final String expected = "SELECT \"t\".\"customer_id\", SUM(\"t\".\"EXPR$0\")\n"
-        + "FROM (SELECT \"customer_id\", \"store_sales\" * \"store_cost\" AS \"EXPR$0\"\n"
+    final String expected = "SELECT \"t\".\"customer_id\", SUM(\"t\".\"$f1\")\n"
+        + "FROM (SELECT \"customer_id\", \"store_sales\" * \"store_cost\" AS \"$f1\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t\"\n"
         + "INNER JOIN (SELECT \"customer_id\"\n"
         + "FROM \"foodmart\".\"customer\") AS \"t0\" ON \"t\".\"customer_id\" = \"t0\".\"customer_id\"\n"
         + "GROUP BY \"t\".\"customer_id\"";
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_JOIN_TRANSPOSE);
+    sql(sql).optimize(rules, null).ok(expected);
+  }
+
+  @Test void testMultiplicationRetainsExplicitAlias() {
+    final String sql = "select s.\"customer_id\", s.\"store_sales\" * s.\"store_cost\" as \"total\""
+        + "from \"sales_fact_1997\" as s\n"
+        + "join \"customer\" as c\n"
+        + "  on s.\"customer_id\" = c.\"customer_id\"\n";
+    final String expected = "SELECT \"t\".\"customer_id\", \"t\".\"total\"\n"
+        + "FROM (SELECT \"customer_id\", \"store_sales\" * \"store_cost\" AS \"total\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"customer_id\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t0\" ON \"t\".\"customer_id\" = \"t0\""
+        + ".\"customer_id\"";
     RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_JOIN_TRANSPOSE);
     sql(sql).optimize(rules, null).ok(expected);
   }
@@ -5094,6 +5104,23 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql);
   }
 
+  /** As {@link #testValuesEmpty()} but with extra {@code SUBSTRING}. Before
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4524">[CALCITE-4524]
+   * Make some fields non-nullable</a> was fixed, this case would fail with
+   * {@code java.lang.IndexOutOfBoundsException}. */
+  @Test void testValuesEmpty2() {
+    final String sql0 = "select *\n"
+        + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
+        + "limit 0";
+    final String sql = "SELECT SUBSTRING(y, 1, 1) FROM (" + sql0 + ") t";
+    final RuleSet rules =
+        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
+    final String expected = "SELECT SUBSTRING(`Y` FROM 1 FOR 1)\n"
+        + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
+        + "WHERE 1 = 0";
+    sql(sql).optimize(rules, null).withMysql().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3840">[CALCITE-3840]
    * Re-aliasing of VALUES that has column aliases produces wrong SQL in the
@@ -6136,6 +6163,30 @@ class RelToSqlConverterTest {
     // in which "isHavingAlias" is true.
     sql(sql)
         .parserConfig(parserConfig)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withBigQuery().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4740">[CALCITE-4740]
+   * JDBC adapter generates incorrect HAVING clause in BigQuery dialect</a>. */
+  @Test void testBigQueryHavingWithoutGeneratedAlias() {
+    final String sql = ""
+        + "SELECT \"DEPTNO\", COUNT(DISTINCT \"EMPNO\")\n"
+        + "FROM \"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "HAVING COUNT(DISTINCT \"EMPNO\") > 0\n"
+        + "ORDER BY COUNT(DISTINCT \"EMPNO\") DESC";
+    final String expected = ""
+        + "SELECT DEPTNO, COUNT(DISTINCT EMPNO)\n"
+        + "FROM SCOTT.EMP\n"
+        + "GROUP BY DEPTNO\n"
+        + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
+        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, COUNT(DISTINCT EMPNO) DESC";
+
+    // Convert rel node to SQL with BigQuery dialect,
+    // in which "isHavingAlias" is true.
+    sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withBigQuery().ok(expected);
   }

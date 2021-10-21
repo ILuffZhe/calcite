@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
@@ -26,6 +28,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -92,6 +95,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -127,6 +131,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -142,6 +147,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for rules in {@code org.apache.calcite.rel} and subpackages.
@@ -442,8 +448,7 @@ class RelOptRulesTest extends RelOptTestBase {
               b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                   b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")),
-              b.call(SqlStdOperatorTable.GREATER_THAN,
-                  RexInputRef.of(0, left.getRowType()),
+              b.greaterThan(RexInputRef.of(0, left.getRowType()),
                   b.literal(20)))
           .project(b.field(0))
           .build();
@@ -494,22 +499,16 @@ class RelOptRulesTest extends RelOptTestBase {
       RexInputRef ref4 = b.field(2, 1, "DNAME");
 
       // ref1 IS NOT DISTINCT FROM ref2
-      RexCall cond1 = (RexCall) b.call(
-          SqlStdOperatorTable.OR,
-          b.call(SqlStdOperatorTable.EQUALS, ref1, ref2),
-          b.call(SqlStdOperatorTable.AND,
-              b.call(SqlStdOperatorTable.IS_NULL, ref1),
-              b.call(SqlStdOperatorTable.IS_NULL, ref2)));
+      RexCall cond1 = (RexCall) b.call(SqlStdOperatorTable.OR,
+          b.equals(ref1, ref2),
+          b.call(SqlStdOperatorTable.AND, b.isNull(ref1), b.isNull(ref2)));
 
       // ref3 IS NOT DISTINCT FROM ref4
-      RexCall cond2 = (RexCall) b.call(
-          SqlStdOperatorTable.OR,
-          b.call(SqlStdOperatorTable.EQUALS, ref3, ref4),
-          b.call(SqlStdOperatorTable.AND,
-              b.call(SqlStdOperatorTable.IS_NULL, ref3),
-              b.call(SqlStdOperatorTable.IS_NULL, ref4)));
+      RexCall cond2 = (RexCall) b.call(SqlStdOperatorTable.OR,
+          b.equals(ref3, ref4),
+          b.call(SqlStdOperatorTable.AND, b.isNull(ref3), b.isNull(ref4)));
 
-      RexNode cond = b.call(SqlStdOperatorTable.AND, cond1, cond2);
+      RexNode cond = b.and(cond1, cond2);
       return b.semiJoin(cond)
           .project(b.field(0))
           .build();
@@ -597,13 +596,11 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(left)
           .push(right)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .push(semiRight)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "JOB"),
+              b.equals(b.field(2, 0, "JOB"),
                   b.field(2, 1, "JOB")))
           .build();
     };
@@ -681,13 +678,13 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.JOIN_CONDITION_PUSH.config
             .withPredicate(predicate)
             .withDescription("FilterJoinRule:no-filter")
-            .as(FilterJoinRule.JoinConditionPushRule.Config.class)
+            .as(FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.class)
             .toRule();
     final FilterJoinRule.FilterIntoJoinRule filterOnJoin =
         CoreRules.FILTER_INTO_JOIN.config
             .withSmart(true)
             .withPredicate(predicate)
-            .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+            .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
             .toRule();
     final HepProgram program =
         HepProgram.builder()
@@ -717,7 +714,7 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.JOIN_CONDITION_PUSH.config
             .withPredicate(predicate)
             .withDescription("FilterJoinRule:no-filter")
-            .as(FilterJoinRule.JoinConditionPushRule.Config.class)
+            .as(FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.class)
             .toRule();
 
     final Function<RelBuilder, RelNode> relFn = b -> {
@@ -727,11 +724,9 @@ class RelOptRulesTest extends RelOptTestBase {
           .push(right)
           .semiJoin(
               b.and(
-                  b.call(SqlStdOperatorTable.EQUALS,
-                      b.field(2, 0, 0),
+                  b.equals(b.field(2, 0, 0),
                       b.field(2, 1, 7)),
-                  b.call(SqlStdOperatorTable.EQUALS,
-                      b.field(2, 1, 5),
+                  b.equals(b.field(2, 1, 5),
                       b.literal(100))))
           .project(b.field(1))
           .build();
@@ -766,8 +761,7 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(left)
           .push(right)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, 0),
+              b.equals(b.field(2, 0, 0),
                   b.field(2, 1, 0)))
           .project(b.field(1))
           .build();
@@ -1981,23 +1975,16 @@ class RelOptRulesTest extends RelOptTestBase {
       RelNode left = b.scan("EMP").build();
       RelNode right = b
           .scan("DEPT")
-          .filter(
-              b.call(SqlStdOperatorTable.LESS_THAN,
-                  b.field("DEPTNO"),
-                  b.literal(10)))
+          .filter(b.lessThan(b.field("DEPTNO"), b.literal(10)))
           .project(b.field("DEPTNO"))
           .scan("DEPT")
-          .filter(
-              b.call(SqlStdOperatorTable.GREATER_THAN,
-                  b.field("DEPTNO"),
-                  b.literal(20)))
+          .filter(b.greaterThan(b.field("DEPTNO"), b.literal(20)))
           .project(b.field("DEPTNO"))
           .union(true)
           .build();
       return b.push(left).push(right)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .project(b.field("SAL"))
           .build();
@@ -2850,9 +2837,50 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.PROJECT_REDUCE_EXPRESSIONS.config
             .withOperandFor(LogicalProject.class)
             .withMatchNullability(false)
-            .as(ProjectReduceExpressionsRule.Config.class)
+            .as(ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig.class)
             .toRule();
     checkReduceNullableToNotNull(rule);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2736">[CALCITE-2736]
+   * ReduceExpressionsRule never reduces dynamic expressions but this should be
+   * configurable</a>. Tests that a dynamic function (USER) is reduced if and
+   * only if {@link ReduceExpressionsRule.Config#treatDynamicCallsAsConstant()}
+   * is true. */
+  @Test public void testReduceDynamic() {
+    checkDynamicFunctions(true).check();
+  }
+
+  /** As {@link #testReduceDynamic()}. */
+  @Test public void testNoReduceDynamic() {
+    checkDynamicFunctions(false).checkUnchanged();
+  }
+
+  private Sql checkDynamicFunctions(boolean treatDynamicCallsAsConstant) {
+    // Create a customized executor with given context operator that reduces
+    // "USER" to "happyCalciteUser"
+    final RexExecutorImpl executor =
+        new RexExecutorImpl(
+            DataContexts.of(name ->
+                name.equals(DataContext.Variable.USER.camelName)
+                    ? "happyCalciteUser"
+                    : fail("unknown: " + name)));
+
+    RelOptPlanner planner = new MockRelOptPlanner(Contexts.empty());
+    planner.setExecutor(executor);
+
+    final ReduceExpressionsRule<?> rule =
+        CoreRules.PROJECT_REDUCE_EXPRESSIONS.config
+            .withOperandFor(LogicalProject.class)
+            .withTreatDynamicCallsAsConstant(treatDynamicCallsAsConstant)
+            .as(ProjectReduceExpressionsRule.Config.class)
+            .toRule();
+
+    final String sql = "select USER from emp";
+    return sql(sql)
+        .withTester(t -> ((TesterImpl) tester).withPlannerFactory(context -> planner))
+        .withRule(rule);
   }
 
   @Test void testReduceConstantsIsNull() {
@@ -2906,9 +2934,7 @@ class RelOptRulesTest extends RelOptTestBase {
         b.scan("EMP")
             .project(b.field("SAL"),
                 b.alias(b.call(nonDeterministicOp), "N"))
-            .filter(
-                b.call(SqlStdOperatorTable.GREATER_THAN,
-                    b.field("N"), b.literal(10)))
+            .filter(b.greaterThan(b.field("N"), b.literal(10)))
             .build();
 
     relFn(relFn)
@@ -3252,6 +3278,22 @@ class RelOptRulesTest extends RelOptTestBase {
             PruneEmptyRules.PROJECT_INSTANCE)
         .withRule(CoreRules.AGGREGATE_VALUES)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
+   * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
+   </a>. */
+  @Test void testAggregateWithDynamicParam() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
+    final String sql = "SELECT sal, COUNT(1) AS count_val\n"
+        + "FROM emp t WHERE sal = ?\n"
+        + "GROUP BY sal HAVING sal < 1000";
+    sql(sql).with(hepPlanner)
+        .checkUnchanged();
   }
 
   @Test void testReduceCasts() {
@@ -5289,6 +5331,35 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4616">[CALCITE-4616]
+   * AggregateUnionTransposeRule causes row type mismatch when some inputs have
+   * unique grouping key</a>. */
+  @Test void testAggregateUnionTransposeWithOneInputUnique() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select distinct deptno, 2 as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
+
+  /** If all inputs to UNION are already unique, AggregateUnionTransposeRule is
+   * a no-op. */
+  @Test void testAggregateUnionTransposeWithAllInputsUnique() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select distinct deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select distinct deptno, 2 as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+
   @Test void testSortJoinTranspose1() {
     final String sql = "select * from sales.emp e left join (\n"
         + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
@@ -5566,6 +5637,12 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testSomeWithEquality2() {
     final String sql = "select * from emp e1\n"
         + "  where e1.ename= SOME (select name from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test void testSomeWithNotEquality() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.deptno <> SOME (select deptno from dept)";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
@@ -6429,7 +6506,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * custom MyFilter.
    */
   public static class MyFilterRule extends RelRule<MyFilterRule.Config> {
-    static final MyFilterRule INSTANCE = Config.EMPTY
+    static final MyFilterRule INSTANCE = ImmutableMyFilterRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(LogicalFilter.class).anyInputs())
         .as(Config.class)
@@ -6448,6 +6526,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableMyFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyFilterRule toRule() {
         return new MyFilterRule(this);
@@ -6483,7 +6563,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   public static class MyProjectRule
       extends RelRule<MyProjectRule.Config> {
-    static final MyProjectRule INSTANCE = Config.EMPTY
+    static final MyProjectRule INSTANCE = ImmutableMyProjectRuleConfig.builder().build()
         .withOperandSupplier(b -> b.operand(LogicalProject.class).anyInputs())
         .as(Config.class)
         .toRule();
@@ -6501,6 +6581,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableMyProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyProjectRule toRule() {
         return new MyProjectRule(this);
@@ -6804,13 +6886,11 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(bottomLeft)
           .push(bottomRight)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .push(top)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "JOB"),
+              b.equals(b.field(2, 0, "JOB"),
                   b.field(2, 1, "JOB")))
           .build();
     };
@@ -6855,8 +6935,7 @@ class RelOptRulesTest extends RelOptTestBase {
               b.literal(true))
           .push(top)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .build();
     };
