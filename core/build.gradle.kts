@@ -89,6 +89,8 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
+    testImplementation("mysql:mysql-connector-java:8.0.25")
+    testImplementation("org.postgresql:postgresql:42.3.1")
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 

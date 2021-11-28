@@ -21,10 +21,11 @@
     {
       "type": "jdbc",
       "name": "foodmart",
-      "jdbcUser": "foodmart",
-      "jdbcPassword": "foodmart",
-      "jdbcUrl": "jdbc:mysql://localhost",
-      "jdbcCatalog": "foodmart",
+      "jdbcUser": "root",
+      "jdbcPassword": "950522",
+      "jdbcUrl": "jdbc:mysql://localhost:3306/calcite",
+      "jdbcDriver": "com.mysql.cj.jdbc.Driver",
+      "jdbcCatalog": null,
       "jdbcSchema": null
     }
   ]

@@ -7791,6 +7791,30 @@ public class JdbcTest {
         .returns("EXPR$0=[0E+1, 1.1]\n");
   }
 
+  @Test void testLexMySQL2() throws Exception {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:calcite:model=/Users/iluffzhe/Desktop/SourceCode/gits/calcite/core/src/test/resources/mysql-foodmart-model.json");
+    final Statement statement = connection.createStatement();
+    final ResultSet resultSet = statement
+        .executeQuery("insert into \"test_auto_incre\"(\"name\") values('testName1')"); // 'testName1'
+    System.out.println(CalciteAssert.toString(resultSet));
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
+  @Test void testLexPG() throws Exception {
+    final Connection connection = DriverManager.getConnection(
+        "jdbc:calcite:model=/Users/iluffzhe/Desktop/SourceCode/gits/calcite/core/src/test/resources/pg-hr-model.json");
+    final Statement statement = connection.createStatement();
+    final ResultSet resultSet = statement
+        .executeQuery("insert into \"testautoincre\"(\"name\") values('testName3')"); // 'testName1'
+    System.out.println(CalciteAssert.toString(resultSet));
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
