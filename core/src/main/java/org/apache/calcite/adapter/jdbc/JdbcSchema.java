@@ -401,6 +401,8 @@ public class JdbcSchema implements Schema {
       RelDataType sqlType =
           sqlType(typeFactory, dataType, precision, scale, typeString);
       boolean nullable = resultSet.getInt(11) != DatabaseMetaData.columnNoNulls;
+      String isAutoIncre = resultSet.getString(23);
+      nullable = isAutoIncre.equalsIgnoreCase("yes") || nullable;
       fieldInfo.add(columnName, sqlType).nullable(nullable);
     }
     resultSet.close();
