@@ -1943,7 +1943,7 @@ public class JdbcTest {
     }
   }
 
-  @Test void testInsertWithoutAutoIncrementField() throws Exception {
+  @Test void testInsertWithAutoIncrementField() throws Exception {
     final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();
     Connection hsqlConnection = DriverManager.getConnection(url);
     Statement hsqlStatement = hsqlConnection.createStatement();
@@ -1974,14 +1974,13 @@ public class JdbcTest {
     Connection calciteConnection =
         DriverManager.getConnection("jdbc:calcite:", info);
     Statement calciteStatement = calciteConnection.createStatement();
-    final String sql = "INSERT INTO t1(ID, NAME) VALUES (1, 'name1')";
-//    final String sql = "INSERT INTO t1(NAME) VALUES ('name1')";
-    calciteStatement.execute(sql);
+    calciteStatement.execute("INSERT INTO t1(NAME) VALUES ('name1')");
     ResultSet rs = calciteStatement.executeQuery("SELECT * FROM t1");
-    while (rs.next()) {
-      System.out.println(rs.getInt("ID"));
-      System.out.println(rs.getString("NAME"));
-    }
+    assertTrue(rs.next());
+    // starting with 0 for AutoIncrement field by default
+    assertEquals(0, rs.getInt(1));
+    assertEquals("name1", rs.getString(2));
+    rs.close();
     calciteStatement.close();
     calciteConnection.close();
   }
