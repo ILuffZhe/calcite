@@ -3490,6 +3490,39 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5117">[CALCITE-5117]
+   * Optimize the EXISTS sub-query by Metadata RowCount</a>. */
+  @Test void testExistsWithAtLeastOneRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where EXISTS (\n"
+        + "  select count(*) from emp e where d.deptno = e.deptno)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testExistsWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where NOT EXISTS (\n"
+        + "  select count(*) from emp e having false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
+   * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
+   </a>. */
+  @Test void testAggregateWithDynamicParam() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
+    final String sql = "SELECT sal, COUNT(1) AS count_val\n"
+        + "FROM emp t WHERE sal = ?\n"
+        + "GROUP BY sal HAVING sal < 1000";
+    sql(sql).withPlanner(hepPlanner)
+        .checkUnchanged();
+  }
+
   @Test void testReduceCasts() {
     // Disable simplify in RelBuilder so that there are casts in 'before';
     // The resulting plan should have no cast expressions
