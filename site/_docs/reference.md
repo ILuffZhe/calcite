@@ -933,6 +933,7 @@ SESSION,
 **SET**,
 SETS,
 **SHOW**,
+SIGNED,
 **SIMILAR**,
 SIMPLE,
 SIZE,
@@ -1075,6 +1076,7 @@ UNDER,
 UNNAMED,
 **UNNEST**,
 UNPIVOT,
+UNSIGNED,
 **UPDATE**,
 **UPPER**,
 **UPSERT**,
@@ -2657,6 +2659,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
+| m | CONVERT(expression, type)                      | Equivalent to `CAST(expression AS type)`; the type could be *SIGNED* or *UNSIGNED*, both of which are not JDBC sql Types
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'

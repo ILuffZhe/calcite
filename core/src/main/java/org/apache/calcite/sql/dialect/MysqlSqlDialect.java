@@ -68,6 +68,9 @@ public class MysqlSqlDialect extends SqlDialect {
             return 255;
           case VARCHAR:
             return 65535;
+          // UNSIGNED in MySQL has the Maximum value of 18446744073709551615
+          case UNSIGNED:
+            return 20;
           case TIMESTAMP:
             return 6;
           default:
@@ -168,6 +171,13 @@ public class MysqlSqlDialect extends SqlDialect {
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
               "SIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case UNSIGNED:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "UNSIGNED",
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);

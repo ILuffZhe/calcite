@@ -1733,6 +1733,23 @@ public class SqlParserTest {
         .same();
   }
 
+  /** Test for MySQL CONVERT parsing, which works on converting data types.
+   */
+  @Test void testMySQLConvert() {
+    expr("CONVERT('value', CHAR(10))")
+        .same();
+    expr("CONVERT('value', DATE)")
+        .same();
+    expr("CONVERT(NULL, CHAR(10))")
+        .same();
+    expr("CONVERT('5.5', DECIMAL(10, 2))")
+        .same();
+    expr("CONVERT(10, SIGNED)")
+        .ok("CONVERT(10, BIGINT)");
+    expr("CONVERT(10, UNSIGNED)")
+        .same();
+  }
+
   @Test void testLikeAndSimilar() {
     sql("select * from t where x like '%abc%'")
         .ok("SELECT *\n"
