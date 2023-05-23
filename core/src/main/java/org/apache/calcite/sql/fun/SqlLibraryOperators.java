@@ -181,6 +181,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>{@code CONVERT(expr, type)} is equivalent to CAST(expr AS type),
    * and the implementation delegates most of its logic to actual CAST operator.
+   * The type arg could be SIGNED or UNSIGNED(MySQL specific).
    *
    * <p>It is different from {@link #MSSQL_CONVERT} on syntax and argument's order.
    *

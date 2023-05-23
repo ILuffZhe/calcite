@@ -1292,7 +1292,7 @@ public class SqlOperatorTest {
     f.checkScalar("convert(45.4, DECIMAL(10, 1))", "45.4", "DECIMAL(10, 1) NOT NULL");
     f.checkScalar("convert('1970-01-01', DATE)", "1970-01-01", "DATE NOT NULL");
     f.checkScalar("convert(2, SIGNED)", 2, "BIGINT NOT NULL");
-    f.checkScalar("convert(2, UNSIGNED)", 2, "UNSIGNED NOT NULL");
+    f.checkScalar("convert(2, UNSIGNED)", 2, "ObjectSqlType(UNSIGNED) NOT NULL");
   }
 
   private static Calendar getFixedCalendar() {

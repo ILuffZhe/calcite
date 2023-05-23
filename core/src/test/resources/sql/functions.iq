@@ -467,12 +467,22 @@ limit 3;
 # -----------------------------------------------------------------------------
 # [CALCITE-5685] - Support MySQL CONVERT function that works on data types
 !use mysqlfunc
-select CONVERT(45.4, DECIMAL(10, 1));
+select CONVERT(45.4, INT);
 +--------+
 | EXPR$0 |
 +--------+
-|   45.4 |
+|     45 |
 +--------+
+(1 row)
+
+!ok
+
+select CONVERT(45.4, char(10));
++------------+
+| EXPR$0     |
++------------+
+| 45.4       |
++------------+
 (1 row)
 
 !ok
@@ -487,22 +497,12 @@ select CONVERT(45.4, SIGNED);
 
 !ok
 
-select CONVERT(45.4, UNSIGNED);
-+--------+
-| EXPR$0 |
-+--------+
-|     45 |
-+--------+
-(1 row)
-
-!ok
-
 select CONVERT('1970-01-01', DATE);
-+--------+
-| EXPR$0 |
-+--------+
-|     45 |
-+--------+
++------------+
+| EXPR$0     |
++------------+
+| 1970-01-01 |
++------------+
 (1 row)
 
 !ok

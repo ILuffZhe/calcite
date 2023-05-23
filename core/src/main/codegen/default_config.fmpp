@@ -344,6 +344,7 @@ parser: {
     "UNCOMMITTED"
     "UNCONDITIONAL"
     "UNDER"
+    "UNNAMED"
     "UNPIVOT"
     "UNSIGNED"
     "USAGE"
