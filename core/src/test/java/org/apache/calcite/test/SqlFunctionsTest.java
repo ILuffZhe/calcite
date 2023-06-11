@@ -42,6 +42,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -147,6 +148,17 @@ class SqlFunctionsTest {
     assertThat(concatWithNull("a", null), is("a"));
     assertThat(concatWithNull(null, null), is(nullValue()));
     assertThat(concatWithNull(null, "b"), is("b"));
+  }
+
+  @Test void testConcatMultiWithSeparator() {
+    assertThat(concatMultiWithSeparator(",", "a"), is("a"));
+    assertThat(concatMultiWithSeparator(",", "a b", "cd"), is("a b,cd"));
+    assertThat(concatMultiWithSeparator(",", "a b", null, "cd", null, "e"), is("a b,cd,e"));
+    assertThat(concatMultiWithSeparator(",", null, null), is(""));
+    assertThat(concatMultiWithSeparator(",", "", ""), is(","));
+    // The separator could be null, it is treated as empty string "".
+    assertThat(concatMultiWithSeparator(null, "a", "b", null, "c"), is("abc"));
+    assertThat(concatMultiWithSeparator(null, null, null), is(""));
   }
 
   @Test void testPosixRegex() {

@@ -2672,6 +2672,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
 | o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
+| m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null as empty string
+| q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, accept at least 3 arguments(at most 254), any of the null arguments is treated as empty string
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*

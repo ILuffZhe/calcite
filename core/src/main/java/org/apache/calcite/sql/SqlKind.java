@@ -424,6 +424,9 @@ public enum SqlKind {
   /** The two-argument {@code CONCAT} function (Oracle). */
   CONCAT2,
 
+  /** The {@code CONCAT_WS} function (MSSQL). */
+  CONCAT_WS_MSSQL,
+
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 

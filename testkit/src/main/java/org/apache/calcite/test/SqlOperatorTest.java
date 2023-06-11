@@ -1980,6 +1980,49 @@ public class SqlOperatorTest {
     f.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5741">[CALCITE-5741]
+   * Add support for CONCAT_WS function(enabled in MSSQL, MySQL and Postgresql)</a>. */
+  @Test void testConcatWSFunc() {
+    final SqlOperatorFixture f = fixture();
+    checkConcatWithSeparator(f.withLibrary(SqlLibrary.MYSQL));
+    checkConcatWithSeparator(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkConcatWSInMSSQL(f.withLibrary(SqlLibrary.MSSQL));
+  }
+
+  private static void checkConcatWithSeparator(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.CONCAT_WS);
+    f.checkString("concat_ws(',', 'a')", "a", "VARCHAR(1) NOT NULL");
+    f.checkString("concat_ws(',', 'a', 'b', null, 'c')", "a,b,c",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar), cast('b' as varchar))", "a,b",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar(2)), cast('b' as varchar(1)))", "a,b",
+        "VARCHAR(4) NOT NULL");
+    f.checkString("concat_ws(',', '', '', '')", ",,", "VARCHAR(2) NOT NULL");
+    f.checkString("concat_ws(',', null, null, null)", "", "VARCHAR NOT NULL");
+    // returns null if the separator is null
+    f.checkNull("concat_ws(null, 'a', 'b')");
+    f.checkNull("concat_ws(null, null, null)");
+    f.checkFails("^concat_ws(',')^", INVALID_ARGUMENTS_NUMBER, false);
+  }
+
+  private static void checkConcatWSInMSSQL(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.CONCAT_WS_MSSQL);
+    f.checkString("concat_ws(',', 'a', 'b', null, 'c')", "a,b,c",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar), cast('b' as varchar))", "a,b",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar(2)), cast('b' as varchar(1)))", "a,b",
+        "VARCHAR(4) NOT NULL");
+    f.checkString("concat_ws(',', '', '', '')", ",,", "VARCHAR(2) NOT NULL");
+    f.checkString("concat_ws(',', null, null, null)", "", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(null, 'a', 'b')", "ab", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(null, null, null)", "", "VARCHAR NOT NULL");
+    f.checkFails("^concat_ws(',')^", INVALID_ARGUMENTS_NUMBER, false);
+    f.checkFails("^concat_ws(',', 'a')^", INVALID_ARGUMENTS_NUMBER, false);
+  }
+
   @Test void testModOperator() {
     // "%" is allowed under BIG_QUERY, MYSQL_5 SQL conformance levels
     final SqlOperatorFixture f0 = fixture()
