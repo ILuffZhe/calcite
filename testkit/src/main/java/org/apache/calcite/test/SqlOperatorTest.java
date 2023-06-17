@@ -1999,6 +1999,28 @@ public class SqlOperatorTest {
     f.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1924">[CALCITE-1924]
+   * Support operator "+" as string concat operator(enabled in MSSQL library)</a>. */
+  @Test void testPlusToConcatFunction() {
+    SqlOperatorFixture f = fixture();
+    // f.checkFails("^'a' + 'b'^", "a", false);
+    final SqlOperatorFixture f0 = f.withLibrary(SqlLibrary.MSSQL);
+    f0.setFor(SqlLibraryOperators.PLUS_TO_CONCAT);
+    f0.checkString("'a' + 'b'", "ab", "VARCHAR(2) NOT NULL");
+//    f0.checkString("cast('a' as varchar) + cast('b' as varchar) +"
+//        + " cast('c' as varchar)", "abc", "VARCHAR NOT NULL");
+//    f0.checkString("'a' + ''", "a", "VARCHAR(1) NOT NULL");
+//    f0.checkString("'' + ''", "", "VARCHAR(0) NOT NULL");
+//    f0.checkNull("'a' + null");
+//    f0.checkNull("'a' + null + 'b'");
+//    f0.checkNull("'' + null");
+    // make sure the standard PLUS operator still works
+//    testPlusOperator(f0);
+//    testPlusOperatorAny(f0);
+//    testPlusIntervalOperator(f0);
+  }
+
   @Test void testModOperator() {
     // "%" is allowed under BIG_QUERY, MYSQL_5 SQL conformance levels
     final SqlOperatorFixture f0 = fixture()

@@ -890,6 +890,30 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
+  /** MSSQL supports the following syntax to concatenate strings:
+   *     "'a' + 'b'"
+   *     "'a' + null + 'b'"
+   *
+   * <p>It differs from CONCAT function in MSSQL, which we call
+   * {@link #CONCAT_FUNCTION_WITH_NULL} in Calcite, on processing
+   * null values as it returns null if any of the arguments is null.
+   * Moreover, it has the BINARY SqlSyntax.
+   *
+   * <p>For example(in MSSQL):
+   *     "CONCAT('a', null)" returns "a",
+   *     but
+   *     "'a' + null" returns null. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction PLUS_TO_CONCAT =
+      SqlBasicFunction.create("+",
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          OperandTypes.repeat(SqlOperandCountRanges.of(2),
+              OperandTypes.STRING),
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.PLUS_TO_CONCAT)
+          .withSyntax(SqlSyntax.BINARY);
+
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
         opBinding.getOperandCount() > 0

@@ -424,6 +424,9 @@ public enum SqlKind {
   /** The two-argument {@code CONCAT} function (Oracle). */
   CONCAT2,
 
+  /** Convert '+' operator to CONCAT function (MSSQL). */
+  PLUS_TO_CONCAT,
+
   /** The {@code CONCAT} function (Postgresql and MSSQL) that ignores NULL. */
   CONCAT_WITH_NULL,
 

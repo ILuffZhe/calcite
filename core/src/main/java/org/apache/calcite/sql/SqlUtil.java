@@ -651,6 +651,8 @@ public abstract class SqlUtil {
       RelDataTypeFactory typeFactory, SqlSyntax syntax,
       final Iterator<SqlOperator> routines, final List<RelDataType> argTypes,
       final @Nullable List<String> argNames, final boolean coerce) {
+    // todo when function has the BINARY SqlSyntax, we need to check both the SqlOperator and SqlFunction's type is legal or not
+    // todo or why is the call binary?
     if (syntax != SqlSyntax.FUNCTION) {
       return routines;
     }

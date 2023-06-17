@@ -193,6 +193,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PLUS_TO_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
@@ -496,6 +497,8 @@ public class RexImpTable {
       defineMethod(CONCAT_FUNCTION_WITH_NULL,
           BuiltInMethod.MULTI_STRING_CONCAT_WITH_NULL.method, NullPolicy.NONE);
       defineMethod(CONCAT2, BuiltInMethod.STRING_CONCAT_WITH_NULL.method, NullPolicy.ALL);
+      defineMethod(PLUS_TO_CONCAT, BuiltInMethod.MULTI_STRING_CONCAT.method,
+          NullPolicy.STRICT);
       defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
       defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
       defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);

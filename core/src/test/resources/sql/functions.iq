@@ -514,6 +514,61 @@ select CONVERT(DATE, '05/01/2000', 103);
 !ok
 !}
 
+# [CALCITE-1924] Support operator "+" as string concat operator(enabled in MSSQL library)
+select 1 + 2 + 3;
++--------+
+| EXPR$0 |
++--------+
+| 6      |
++--------+
+(1 row)
+
+!ok
+
+select 'a' + 'b' + 'c';
++--------+
+| EXPR$0 |
++--------+
+| abc    |
++--------+
+(1 row)
+
+!ok
+
+select 'a' + '';
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+with t as (select 'a' + cast(null as varchar) + 'b' as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select '' + '' as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
 # [CALCITE-5771] Apply two different NULL semantics for CONCAT function(enabled in MySQL, Postgresql, BigQuery and MSSQL)
 with t as (select concat(null) as c)
 select c, c is null as c_is_null
