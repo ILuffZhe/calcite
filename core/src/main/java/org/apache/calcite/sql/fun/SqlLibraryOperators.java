@@ -894,6 +894,8 @@ public abstract class SqlLibraryOperators {
    *     "'a' + 'b'"
    *     "'a' + null + 'b'"
    *
+   *     todo: refer to CONCAT_WS to modify doc
+   *
    * <p>It differs from CONCAT function in MSSQL, which we call
    * {@link #CONCAT_FUNCTION_WITH_NULL} in Calcite, on processing
    * null values as it returns null if any of the arguments is null.
@@ -912,7 +914,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.PLUS_TO_CONCAT)
-          .withSyntax(SqlSyntax.BINARY);
+          .withSyntax(SqlSyntax.FUNCTION);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
