@@ -249,6 +249,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORACLE_CONVERT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
@@ -738,6 +739,7 @@ public class RexImpTable {
       defineMethod(CONCAT_WS_SPARK,
           BuiltInMethod.MULTI_TYPE_STRING_ARRAY_CONCAT_WITH_SEPARATOR.method,
           NullPolicy.ARG0);
+      defineMethod(ORACLE_CONVERT, BuiltInMethod.ORACLE_CONVERT.method, NullPolicy.ARG0);
       defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
       defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
       defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);

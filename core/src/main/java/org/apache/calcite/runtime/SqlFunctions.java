@@ -1680,6 +1680,32 @@ public class SqlFunctions {
     }
   }
 
+  /** Oracle's {@code CONVERT(charValue, destCharsetName[, srcCharsetName])} function,
+   * return null if s is null or empty. */
+  public static String oracleConvert(String s, String... args) {
+    if (s == null) {
+      return null;
+    }
+    final Charset src;
+    final Charset dest;
+    if (args.length == 1) {
+      // srcCharsetName is not specified
+      src = Charset.defaultCharset();
+      dest = SqlUtil.getCharset(args[0]);
+    } else {
+      dest = SqlUtil.getCharset(args[0]);
+      src = SqlUtil.getCharset(args[1]);
+    }
+    byte[] bytes = s.getBytes(src);
+    final CharsetDecoder decoder = dest.newDecoder();
+    final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+    try {
+      return decoder.decode(buffer).toString();
+    } catch (CharacterCodingException ex) {
+      throw RESOURCE.charsetEncoding(s, dest.name()).ex();
+    }
+  }
+
   /** State for {@code PARSE_URL}. */
   @Deterministic
   public static class ParseUrlFunction {

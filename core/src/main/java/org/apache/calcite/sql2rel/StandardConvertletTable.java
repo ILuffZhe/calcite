@@ -90,6 +90,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -294,6 +295,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         (cx, call) -> cx.convertExpression(call.operand(0)));
 
     registerOp(SqlStdOperatorTable.CONVERT, this::convertCharset);
+    registerOp(SqlLibraryOperators.ORACLE_CONVERT, this::convertCharset);
     registerOp(SqlStdOperatorTable.TRANSLATE, this::translateCharset);
     // "SQRT(x)" is equivalent to "POWER(x, .5)"
     registerOp(SqlStdOperatorTable.SQRT,
@@ -853,15 +855,32 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   protected RexNode convertCharset(
       @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
     final SqlParserPos pos = call.getParserPosition();
     final SqlNode expr = call.operand(0);
-    final String srcCharset = call.operand(1).toString();
-    final String destCharset = call.operand(2).toString();
-    final RexBuilder rexBuilder = cx.getRexBuilder();
-    return rexBuilder.makeCall(pos, SqlStdOperatorTable.CONVERT,
-        cx.convertExpression(expr),
-        rexBuilder.makeLiteral(srcCharset),
-        rexBuilder.makeLiteral(destCharset));
+    final SqlOperator op = call.getOperator();
+    final String srcCharset;
+    final String destCharset;
+    if (op == SqlStdOperatorTable.CONVERT) {
+      srcCharset = call.operand(1).toString();
+      destCharset = call.operand(2).toString();
+      return rexBuilder.makeCall(pos, op,
+          cx.convertExpression(expr),
+          rexBuilder.makeLiteral(srcCharset),
+          rexBuilder.makeLiteral(destCharset));
+    } else {
+      destCharset = call.operand(1).toString();
+      if (call.operandCount() == 2) {
+        // when srcCharsetName is not specified in Oracle's CONVERT
+        srcCharset = Charset.defaultCharset().name();
+      } else {
+        srcCharset = call.operand(2).toString();
+      }
+      return rexBuilder.makeCall(pos, op,
+          cx.convertExpression(expr),
+          rexBuilder.makeLiteral(destCharset),
+          rexBuilder.makeLiteral(srcCharset));
+    }
   }
 
   protected RexNode translateCharset(

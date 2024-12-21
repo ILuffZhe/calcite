@@ -60,6 +60,7 @@ import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.oracleConvert;
 import static org.apache.calcite.runtime.SqlFunctions.overlay;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
@@ -317,6 +318,12 @@ class SqlFunctionsTest {
     assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c"), null),
         is("a,1,[b, c]"));
     assertThat(concatMultiObjectWithSeparator("abc", null, null), is(""));
+  }
+
+  @Test void testOracleConvert() {
+    assertThat(oracleConvert("a", "UTF8", "LATIN1"), is("a"));
+    assertThat(oracleConvert("a", "UTF8"), is("a"));
+    assertThat(oracleConvert(null, "UTF8", "LATIN1"), is(nullValue()));
   }
 
   @Test void testPosixRegex() {
