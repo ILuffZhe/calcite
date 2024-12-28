@@ -681,6 +681,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       sb.append("JavaType(");
       sb.append(clazz);
       sb.append(")");
+      if (charset != null
+          && !SqlCollation.IMPLICIT.getCharset().equals(charset)) {
+        sb.append(" CHARACTER SET ");
+        sb.append(charset);
+      }
     }
 
     @Override public @Nullable RelDataType getComponentType() {

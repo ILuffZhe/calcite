@@ -40,6 +40,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -113,7 +114,21 @@ public class SqlConvertFunction extends SqlFunction {
     RelDataType nodeType =
         validator.deriveType(scope, call.operand(0));
     requireNonNull(nodeType, "nodeType");
-    return validateOperands(validator, scope, call);
+    RelDataType operandType0 = validateOperands(validator, scope, call);
+    // null value has no SqlCollation
+    if (operandType0.getCollation() == null) {
+      return operandType0;
+    }
+    // we should add target charset for operand0 type
+    // target charset is operand(1) for TRANSLATE
+    Charset charset = this.kind == SqlKind.CONVERT
+        ? SqlUtil.getCharset(call.operand(2).toString())
+        : SqlUtil.getCharset(call.operand(1).toString());
+    return validator.getTypeFactory()
+        .createTypeWithCharsetAndCollation(
+            operandType0,
+            charset,
+            requireNonNull(operandType0.getCollation(), "collation"));
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,

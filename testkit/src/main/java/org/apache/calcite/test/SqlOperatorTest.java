@@ -10635,6 +10635,14 @@ public class SqlOperatorTest {
     f.checkAgg("every(x = 2)", values, isSingle("false"));
   }
 
+  @Test void testQuantifyCollectionOperators2() {
+    final SqlOperatorFixture f = fixture();
+    f.checkQuery("select col from (select 'a' as col) as t "
+        + "where convert(col using GBK)=_GBK'a'");
+//    f.checkQuery("select col from (select 'a' as col) as t "
+//        + "where convert(col using UTF8)=_GBK'a'");
+  }
+
   @Test void testSomeAggFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.SOME, VM_EXPAND);
