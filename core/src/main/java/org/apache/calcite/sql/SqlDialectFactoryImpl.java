@@ -49,6 +49,7 @@ import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
+import org.apache.calcite.sql.dialect.TrinoSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -297,6 +298,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return SybaseSqlDialect.DEFAULT;
     case TERADATA:
       return TeradataSqlDialect.DEFAULT;
+    case TRINO:
+      return TrinoSqlDialect.DEFAULT;
     case VERTICA:
       return VerticaSqlDialect.DEFAULT;
     case SPARK:
