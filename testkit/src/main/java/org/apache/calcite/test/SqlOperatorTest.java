@@ -4859,6 +4859,20 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-815">[CALCITE-815]
+   * Add an option to allow empty strings to represent null values</a>. */
+  @Test void testReplaceFuncEmptyIsNull() {
+    final SqlOperatorFixture f = fixture();
+    checkReplaceFunc(f);
+    // case-insensitive
+    SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkString("REPLACE('ciao', 'ciao', '')", null,
+        "VARCHAR NOT NULL");
+    f1.checkString("REPLACE('', 'ci', 'ciao')", null,
+        "VARCHAR NOT NULL");
+  }
+
   private static void checkReplaceFunc(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
     f.checkString("REPLACE('ciao', 'ciao', '')", "",
