@@ -74,7 +74,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -5069,16 +5068,10 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
         List<Expression> argValueList) {
-      SqlConformance conformance = translator.conformance;
-      boolean isCaseSensitive = conformance != SqlConformanceEnum.SQL_SERVER_2008;
+      boolean isCaseSensitive = translator.conformance != SqlConformanceEnum.SQL_SERVER_2008;
       final Expression operand0 = argValueList.get(0);
       final Expression operand1 = argValueList.get(1);
       final Expression operand2 = argValueList.get(2);
-      if (conformance.emptyStringIsNull()) {
-          return Expressions.call(BuiltInMethod.EMPTY_STRING_IS_NULL.method,
-              Expressions.call(BuiltInMethod.REPLACE.method,
-                  operand0, operand1, operand2, Expressions.constant(isCaseSensitive)));
-      }
       return Expressions.call(BuiltInMethod.REPLACE.method,
           operand0, operand1, operand2, Expressions.constant(isCaseSensitive));
     }

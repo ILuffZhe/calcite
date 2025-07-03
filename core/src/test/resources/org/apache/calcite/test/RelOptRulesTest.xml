@@ -15918,7 +15918,7 @@ LogicalProject(EXPR$0=[REPLACE('abc', 'c', 'cd')])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=['abcd':VARCHAR])
+LogicalProject(EXPR$0=[CAST('abcd':VARCHAR):VARCHAR])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>

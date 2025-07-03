@@ -2178,17 +2178,14 @@ public class SqlOperatorTest {
     f.checkNull("{fn REPEAT('abc', cast(null as integer))}");
     f.checkNull("{fn REPEAT(cast(null as varchar(1)), cast(null as integer))}");
 
-    f.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
-        "BLACK and BLUE", "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('JACK and JUE','J','BL')}", "BLACK and BLUE", "VARCHAR");
 
     // REPLACE returns NULL in Oracle but not in Postgres or in Calcite.
     // When [CALCITE-815] is implemented and SqlConformance#emptyStringIsNull is
     // enabled, it will return empty string as NULL.
-    f.checkString("{fn REPLACE('ciao', 'ciao', '')}", "",
-        "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('ciao', 'ciao', '')}", "", "VARCHAR");
 
-    f.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld",
-        "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld", "VARCHAR");
 
     f.checkNull("{fn REPLACE(cast(null as varchar(5)), 'ciao', '')}");
     f.checkNull("{fn REPLACE('ciao', cast(null as varchar(3)), 'zz')}");
@@ -4838,10 +4835,8 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkReplaceFunc(f);
     // case-sensitive
-    f.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciAciaoo",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaoao",
-        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciAciaoo", "VARCHAR");
+    f.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaoao", "VARCHAR");
   }
 
   /** Test case for
@@ -4853,38 +4848,29 @@ public class SqlOperatorTest {
     checkReplaceFunc(f);
     // case-insensitive
     SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.SQL_SERVER_2008);
-    f1.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciciaociaoo",
-        "VARCHAR NOT NULL");
-    f1.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaociaoo",
-        "VARCHAR NOT NULL");
+    f1.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciciaociaoo", "VARCHAR");
+    f1.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaociaoo", "VARCHAR");
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-815">[CALCITE-815]
    * Add an option to allow empty strings to represent null values</a>. */
   @Test void testReplaceFuncEmptyIsNull() {
-    final SqlOperatorFixture f = fixture();
-    checkReplaceFunc(f);
-    // case-insensitive
-    SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
-    f1.checkString("REPLACE('ciao', 'ciao', '')", null,
-        "VARCHAR NOT NULL");
-    f1.checkString("REPLACE('', 'ci', 'ciao')", null,
-        "VARCHAR NOT NULL");
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.ORACLE_12);
+    f.checkNull("REPLACE('ciao', 'ciao', '')");
+    f.checkNull("REPLACE('', 'ci', 'ciao')");
+    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld", "VARCHAR");
+    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao", "VARCHAR");
+    f.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
   }
 
   private static void checkReplaceFunc(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
-    f.checkString("REPLACE('ciao', 'ciao', '')", "",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ciao', '', 'ciao')", "ciao",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('', 'ciao', 'ciao')", "",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
-        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciao', 'ciao', '')", "", "VARCHAR");
+    f.checkString("REPLACE('ciao', '', 'ciao')", "ciao", "VARCHAR");
+    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao", "VARCHAR");
+    f.checkString("REPLACE('', 'ciao', 'ciao')", "", "VARCHAR");
+    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld", "VARCHAR");
     f.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
     f.checkNull("REPLACE('ciao', cast(null as varchar(3)), 'zz')");
     f.checkNull("REPLACE('ciao', 'bella', cast(null as varchar(3)))");

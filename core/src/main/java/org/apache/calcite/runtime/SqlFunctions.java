@@ -1248,10 +1248,6 @@ public class SqlFunctions {
     return c.substring(s0, e0);
   }
 
-  public static @Nullable String emptyStringIsNull(String str) {
-    return str.isEmpty() ? null : str;
-  }
-
   /** SQL FORMAT_NUMBER(value, decimalOrFormat) function. */
   public static String formatNumber(long value, int decimalVal) {
     DecimalFormat numberFormat = getNumberFormat(decimalVal);

@@ -80,6 +80,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -208,6 +209,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new SubstrConvertlet(SqlLibrary.ORACLE));
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
+    registerOp(SqlStdOperatorTable.REPLACE, new ReplaceConvertlet());
 
     registerOp(SqlLibraryOperators.DATE_ADD,
         new TimestampAddConvertlet());
@@ -2555,6 +2557,27 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
               SqlTypeUtil.containsNullable(call2.getType()));
       RexNode e = rexBuilder.makeCast(pos, intType, call2);
       return rexBuilder.multiplyDivide(pos, e, multiplier, divider);
+    }
+  }
+
+  /** Convertlet that handles {@code REPLACE} function. */
+  private static class ReplaceConvertlet implements SqlRexConvertlet {
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      final SqlParserPos pos = call.getParserPosition();
+      final List<RexNode> operands =
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+      final RelDataType type =
+          cx.getValidator().getValidatedNodeType(call);
+      final RexNode rawCall =
+          rexBuilder.makeCall(pos, type, SqlStdOperatorTable.REPLACE, operands);
+      SqlConformance conformance = cx.getValidator().config().conformance();
+      if (conformance.emptyStringIsNull()) {
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
+                rexBuilder.makeLiteral("")), rexBuilder.makeNullLiteral(type), rawCall);
+      }
+      return rawCall;
     }
   }
 }
