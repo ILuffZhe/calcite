@@ -209,7 +209,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new SubstrConvertlet(SqlLibrary.ORACLE));
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
-    registerOp(SqlStdOperatorTable.REPLACE, new ReplaceConvertlet());
+    registerOp(SqlStdOperatorTable.REPLACE, StandardConvertletTable::convertReplace);
+    registerOp(SqlStdOperatorTable.UPPER, StandardConvertletTable::convertUpper);
+    registerOp(SqlStdOperatorTable.LOWER, StandardConvertletTable::convertLower);
+    registerOp(SqlStdOperatorTable.INITCAP, StandardConvertletTable::convertInitcap);
 
     registerOp(SqlLibraryOperators.DATE_ADD,
         new TimestampAddConvertlet());
@@ -2561,23 +2564,50 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   /** Convertlet that handles {@code REPLACE} function. */
-  private static class ReplaceConvertlet implements SqlRexConvertlet {
-    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
-      final RexBuilder rexBuilder = cx.getRexBuilder();
-      final SqlParserPos pos = call.getParserPosition();
-      final List<RexNode> operands =
-          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
-      final RelDataType type =
-          cx.getValidator().getValidatedNodeType(call);
-      final RexNode rawCall =
-          rexBuilder.makeCall(pos, type, SqlStdOperatorTable.REPLACE, operands);
-      SqlConformance conformance = cx.getValidator().config().conformance();
-      if (conformance.emptyStringIsNull()) {
-        return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
-            rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
-                rexBuilder.makeLiteral("")), rexBuilder.makeNullLiteral(type), rawCall);
-      }
-      return rawCall;
+  private static RexNode convertReplace(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.REPLACE);
+  }
+
+  /** Convertlet that handles {@code UPPER} function. */
+  private static RexNode convertUpper(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.UPPER);
+  }
+
+  /** Convertlet that handles {@code LOWER} function. */
+  private static RexNode convertLower(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.LOWER);
+  }
+
+  /** Convertlet that handles {@code INITCAP} function. */
+  private static RexNode convertInitcap(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.INITCAP);
+  }
+
+  private static RexNode convertCallWithEmptyString(SqlRexContext cx, SqlCall call,
+      SqlOperator op) {
+    // Translate
+    //   STR_FUNC(operand0[,operand1,...])
+    //
+    // to the following if we want Oracle semantics
+    //   CASE
+    //     WHEN STR_FUNC(operand0[,operand1,...]) = ''
+    //     THEN NULL
+    //     ELSE STR_FUNC(operand0[,operand1,...])
+    //   END
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final SqlParserPos pos = call.getParserPosition();
+    final List<RexNode> operands =
+        convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataType type =
+        cx.getValidator().getValidatedNodeType(call);
+    final RexNode rawCall =
+        rexBuilder.makeCall(pos, type, op, operands);
+    SqlConformance conformance = cx.getValidator().config().conformance();
+    if (conformance.emptyStringIsNull()) {
+      return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
+              rexBuilder.makeLiteral("")), rexBuilder.makeNullLiteral(type), rawCall);
     }
+    return rawCall;
   }
 }

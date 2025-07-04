@@ -1755,19 +1755,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction UPPER =
       SqlBasicFunction.create("UPPER",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction LOWER =
       SqlBasicFunction.create("LOWER",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction INITCAP =
       SqlBasicFunction.create("INITCAP",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 

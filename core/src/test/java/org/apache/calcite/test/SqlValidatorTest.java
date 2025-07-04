@@ -1000,12 +1000,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("upper(_UTF16'sadf')").ok();
     expr("lower(n'sadf')").ok();
     expr("lower('sadf')")
-        .columnType("CHAR(4) NOT NULL");
+        .columnType("CHAR(4)");
     wholeExpr("upper(123)")
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*");
     expr("upper(123)")
-        .columnType("VARCHAR NOT NULL");
+        .columnType("VARCHAR");
   }
 
   @Test void testPosition() {

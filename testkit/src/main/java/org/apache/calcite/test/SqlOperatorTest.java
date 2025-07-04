@@ -2163,8 +2163,7 @@ public class SqlOperatorTest {
     // REVIEW: is this result correct? I think it should be "abcCdef"
     f.checkScalar("{fn INSERT('abc', 1, 2, 'ABCdef')}",
         "ABCdefc", "VARCHAR(9) NOT NULL");
-    f.checkScalar("{fn LCASE('foo' || 'bar')}",
-        "foobar", "CHAR(6) NOT NULL");
+    f.checkScalar("{fn LCASE('foo' || 'bar')}", "foobar", "CHAR(6)");
     if (false) {
       f.checkScalar("{fn LENGTH(string)}", null, "");
     }
@@ -2207,7 +2206,7 @@ public class SqlOperatorTest {
         "{fn SUBSTRING('abcdef', 2, 3)}",
         "bcd",
         "VARCHAR(6) NOT NULL");
-    f.checkScalar("{fn UCASE('xxx')}", "XXX", "CHAR(3) NOT NULL");
+    f.checkScalar("{fn UCASE('xxx')}", "XXX", "CHAR(3)");
 
     // Time and Date Functions
     f.checkType("{fn CURDATE()}", "DATE NOT NULL");
@@ -6202,11 +6201,16 @@ public class SqlOperatorTest {
   @Test void testUpperFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.UPPER, VmName.EXPAND);
-    f.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
-    f.checkString("upper('A')", "A", "CHAR(1) NOT NULL");
-    f.checkString("upper('1')", "1", "CHAR(1) NOT NULL");
-    f.checkString("upper('aa')", "AA", "CHAR(2) NOT NULL");
+    f.checkString("upper('a')", "A", "CHAR(1)");
+    f.checkString("upper('A')", "A", "CHAR(1)");
+    f.checkString("upper('1')", "1", "CHAR(1)");
+    f.checkString("upper('aa')", "AA", "CHAR(2)");
     f.checkNull("upper(cast(null as varchar(1)))");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("upper('')");
+    f1.checkString("upper('a')", "A", "CHAR(1)");
+    f.checkString("upper('  ')", "  ", "CHAR(2)");
   }
 
   @Test void testLeftFunc() {
@@ -7537,11 +7541,16 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.LOWER, VmName.EXPAND);
 
     // SQL:2003 6.29.8 The type of lower is the type of its argument
-    f.checkString("lower('A')", "a", "CHAR(1) NOT NULL");
-    f.checkString("lower('a')", "a", "CHAR(1) NOT NULL");
-    f.checkString("lower('1')", "1", "CHAR(1) NOT NULL");
-    f.checkString("lower('AA')", "aa", "CHAR(2) NOT NULL");
+    f.checkString("lower('A')", "a", "CHAR(1)");
+    f.checkString("lower('a')", "a", "CHAR(1)");
+    f.checkString("lower('1')", "1", "CHAR(1)");
+    f.checkString("lower('AA')", "aa", "CHAR(2)");
     f.checkNull("lower(cast(null as varchar(1)))");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("lower('')");
+    f1.checkString("lower('A')", "a", "CHAR(1)");
+    f.checkString("lower('  ')", "  ", "CHAR(2)");
   }
 
   @Test void testInitcapFunc() {
@@ -7551,12 +7560,10 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.INITCAP);
 
-    f.checkString("initcap('aA')", "Aa", "CHAR(2) NOT NULL");
-    f.checkString("initcap('Aa')", "Aa", "CHAR(2) NOT NULL");
-    f.checkString("initcap('1a')", "1a", "CHAR(2) NOT NULL");
-    f.checkString("initcap('ab cd Ef 12')",
-        "Ab Cd Ef 12",
-        "CHAR(11) NOT NULL");
+    f.checkString("initcap('aA')", "Aa", "CHAR(2)");
+    f.checkString("initcap('Aa')", "Aa", "CHAR(2)");
+    f.checkString("initcap('1a')", "1a", "CHAR(2)");
+    f.checkString("initcap('ab cd Ef 12')", "Ab Cd Ef 12", "CHAR(11)");
     f.checkNull("initcap(cast(null as varchar(1)))");
 
     // dtbug 232
@@ -7567,6 +7574,10 @@ public class SqlOperatorTest {
                 + "'INITCAP\\(<CHARACTER>\\)'",
             false);
     f.checkType("initcap(cast(null as date))", "VARCHAR");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("initcap('')");
+    f.checkString("initcap('  ')", "  ", "CHAR(2)");
   }
 
   @Test void testPowerFunc() {

@@ -18,6 +18,33 @@
 !use scott-oracle
 !set outputformat mysql
 # Test case for [CALCITE-815] Add an option to allow empty strings to represent null values.
+# INITCAP function
+with t as (select initcap('') as c from dual)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# LOWER function
+with t as (select lower('') as c from dual)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# REPLACE function
 with t as (select replace('ciao', 'ciao', '') as c from dual)
 select c, c is null as c_is_null
 from t;
@@ -31,6 +58,19 @@ from t;
 !ok
 
 with t as (select replace('', 'ciao', 'ci') as c from dual)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# UPPER function
+with t as (select upper('') as c from dual)
 select c, c is null as c_is_null
 from t;
 +---+-----------+
